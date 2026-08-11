@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from .ledger import AdvanceError, PhaseLedger
+from .maintenance import run_maintenance
 from .measure import measure
 from .ncycle import run_n_cycles
 
@@ -104,6 +105,25 @@ def cmd_history(args: argparse.Namespace) -> int:
     return 0 if "ERROR:" not in text else 1
 
 
+def cmd_init(args: argparse.Namespace) -> int:
+    path = Path(args.ledger)
+    ledger = PhaseLedger.open(path)
+    print(f"initialized ledger at {ledger.root}")
+    print(f"phases: {', '.join(ledger.phases)}")
+    return 0
+
+
+def cmd_maintenance(args: argparse.Namespace) -> int:
+    result = run_maintenance(args.ledger, steps=args.steps)
+    text = result.format_text()
+    if args.out:
+        out_path = Path(args.out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(text, encoding="utf-8")
+    sys.stdout.write(text)
+    return 0 if result.ok else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="phaseledger",
@@ -160,6 +180,19 @@ def build_parser() -> argparse.ArgumentParser:
     h.add_argument("--ledger", required=True, help="Ledger directory")
     h.add_argument("--out", help="Write history text to this path")
     h.set_defaults(func=cmd_history)
+
+    i = sub.add_parser("init", help="Create an empty ledger directory")
+    i.add_argument("--ledger", required=True, help="Ledger directory to create")
+    i.set_defaults(func=cmd_init)
+
+    mt = sub.add_parser(
+        "maintenance",
+        help="Run N same-ledger maintenance steps (re-claim→measure→advance + verify)",
+    )
+    mt.add_argument("--ledger", required=True, help="Ledger directory")
+    mt.add_argument("--steps", type=int, default=5, help="Maintenance steps (default 5)")
+    mt.add_argument("--out", help="Write maintenance report to this path")
+    mt.set_defaults(func=cmd_maintenance)
 
     return p
 

@@ -3,6 +3,7 @@
 from .measure import VERDICTS, MeasureResult, measure
 from .ledger import DEFAULT_PHASES, PhaseLedger, PhaseState, VerifyResult
 from .ncycle import NCycleResult, run_n_cycles
+from .maintenance import MaintenanceResult, run_maintenance
 
 __all__ = [
     "VERDICTS",
@@ -14,6 +15,8 @@ __all__ = [
     "VerifyResult",
     "NCycleResult",
     "run_n_cycles",
+    "MaintenanceResult",
+    "run_maintenance",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

@@ -64,9 +64,11 @@ python -m unittest discover -s tests -v
 ## Gate invariants
 
 Capability line **G** rules live in [INVARIANTS.md](INVARIANTS.md).  
-Cycle records: [CYCLE-001.md](CYCLE-001.md), [CYCLE-002.md](CYCLE-002.md), [CYCLE-003.md](CYCLE-003.md).
+Cycle records: [CYCLE-001](CYCLE-001.md) … [CYCLE-004](CYCLE-004.md).
 
 ```bash
+python -m phaseledger init --ledger .phaseledger
+python -m phaseledger maintenance --ledger .phaseledger --steps 5
 python -m phaseledger ncycle --dir .ncycle-runs --count 5
 python -m phaseledger verify --ledger .phaseledger
 python -m phaseledger history --ledger .phaseledger
