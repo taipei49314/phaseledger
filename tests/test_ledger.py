@@ -81,6 +81,44 @@ class TestPhaseLedger(unittest.TestCase):
             self.assertEqual(bare.verdict, via_ledger.verdict)
             self.assertEqual(bare.observation_digest, via_ledger.observation_digest)
 
+    def test_reclaim_invalidates_prior_measure_for_advance(self) -> None:
+        """New claim must not advance on a stale PASS from a previous claim."""
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = PhaseLedger.open(tmp)
+            ledger.record_claim("plan", "claim A")
+            r = ledger.record_measure("plan", _pass_obs("plan", "claim A"))
+            self.assertEqual(r.verdict, "PASS")
+            st = ledger.advance("plan")
+            self.assertTrue(st.advanced)
+            # Supersede claim without measuring the new claim.
+            ledger.record_claim("plan", "claim B")
+            self.assertFalse(ledger.states["plan"].advanced)
+            self.assertIsNone(ledger.states["plan"].measure_verdict)
+            self.assertEqual(ledger.states["plan"].claim, "claim B")
+            with self.assertRaises(AdvanceError) as ctx:
+                ledger.advance("plan")
+            msg = str(ctx.exception).lower()
+            self.assertIn("no measure", msg)
+            # Fresh measure of the new claim is required before advance.
+            r2 = ledger.record_measure("plan", _pass_obs("plan", "claim B"))
+            self.assertEqual(r2.verdict, "PASS")
+            st2 = ledger.advance("plan")
+            self.assertTrue(st2.advanced)
+            self.assertEqual(st2.claim, "claim B")
+
+    def test_advance_refuses_measure_for_different_claim(self) -> None:
+        """Even if measure fields are set, claim mismatch must refuse advance."""
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = PhaseLedger.open(tmp)
+            ledger.record_claim("plan", "claim A")
+            ledger.record_measure("plan", _pass_obs("plan", "claim A"))
+            # Simulate a claim update that forgot to clear measure (tamper).
+            ledger.states["plan"].claim = "claim B never measured"
+            ledger.save()
+            with self.assertRaises(AdvanceError) as ctx:
+                ledger.advance("plan")
+            self.assertIn("claim", str(ctx.exception).lower())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -53,8 +53,20 @@ class TestCLI(unittest.TestCase):
     def test_ledger_measure_advance_status(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             ledger = str(Path(tmp) / ".phaseledger")
+            # Claim text must match the observation claim used in measure (gate).
+            claim_text = (
+                "measurer-first plan complete with fixtures and phase gates defined"
+            )
             claim_code = main(
-                ["claim", "--ledger", ledger, "--phase", "plan", "--claim", "cli plan"]
+                [
+                    "claim",
+                    "--ledger",
+                    ledger,
+                    "--phase",
+                    "plan",
+                    "--claim",
+                    claim_text,
+                ]
             )
             self.assertEqual(claim_code, 0)
             buf = io.StringIO()

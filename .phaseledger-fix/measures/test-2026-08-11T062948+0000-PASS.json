@@ -1,0 +1,32 @@
+{
+  "observations": {
+    "artifact_present": true,
+    "artifact_sha256": "8f7efb3bfeff1498064922650ef5899ee143aaa1957bef7a130323b6f7607e28",
+    "checks": [
+      {
+        "name": "suite_ok",
+        "passed": true
+      },
+      {
+        "name": "at_least_20_tests",
+        "passed": true
+      },
+      {
+        "name": "reclaim_test_in_log",
+        "passed": true
+      }
+    ],
+    "claim": "suite includes reclaim-invalidates-measure gate; all pass",
+    "phase": "test"
+  },
+  "phase": "test",
+  "recorded_at": "2026-08-11T06:29:48+00:00",
+  "result": {
+    "claim": "suite includes reclaim-invalidates-measure gate; all pass",
+    "missing_keys": [],
+    "observation_digest": "0cca4c43fd3145e3ec8f2441462143b3e8156b798401e03cd35aa5163c3a5dce",
+    "phase": "test",
+    "reason": "all required observations present; all checks passed",
+    "verdict": "PASS"
+  }
+}

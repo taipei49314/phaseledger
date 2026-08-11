@@ -1,28 +1,20 @@
 {
   "artifact_present": true,
-  "artifact_sha256": "e43188ce9115047622ad454bf73cf90c9bf07163ef3c4b98470516029cb2a551",
+  "artifact_sha256": "37e99e14d6345c4ca80277ec20bfc558d49452005cc6791f0b1a821ddcee4936",
   "checks": [
-    {
-      "name": "measure_py_exists",
-      "passed": true
-    },
-    {
-      "name": "cli_py_exists",
-      "passed": true
-    },
     {
       "name": "ledger_py_exists",
       "passed": true
     },
     {
-      "name": "fixtures_complete",
+      "name": "measure_py_exists",
       "passed": true
     },
     {
-      "name": "fixtures_incomplete",
+      "name": "stale_measure_test_exists",
       "passed": true
     }
   ],
-  "claim": "measurer core + CLI + ledger implemented",
+  "claim": "record_claim invalidates prior measure; advance claim-bound",
   "phase": "implement"
 }

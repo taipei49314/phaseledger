@@ -1,28 +1,20 @@
 {
   "artifact_present": true,
-  "artifact_sha256": "8b9e80331ed129f5aff4a413c3ad5470b9d684a1e34ef8c5daa575c339db4ea4",
+  "artifact_sha256": "8f7efb3bfeff1498064922650ef5899ee143aaa1957bef7a130323b6f7607e28",
   "checks": [
     {
-      "name": "test_suite_ok",
+      "name": "suite_ok",
       "passed": true
     },
     {
-      "name": "at_least_18_tests",
+      "name": "at_least_20_tests",
       "passed": true
     },
     {
-      "name": "test_measure_module_exists",
-      "passed": true
-    },
-    {
-      "name": "test_ledger_module_exists",
-      "passed": true
-    },
-    {
-      "name": "test_cli_module_exists",
+      "name": "reclaim_test_in_log",
       "passed": true
     }
   ],
-  "claim": "full unittest suite drives shipped measurer and passes",
+  "claim": "suite includes reclaim-invalidates-measure gate; all pass",
   "phase": "test"
 }

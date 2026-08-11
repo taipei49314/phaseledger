@@ -75,13 +75,23 @@ class PhaseLedger:
         os.replace(tmp, path)
 
     def record_claim(self, phase: str, claim: str) -> Path:
+        """Record a claim. Invalidates any prior measure and advance for the phase.
+
+        A new claim is never trusted until a fresh measure covers it; stale
+        PASS verdicts from an earlier claim must not authorize advance.
+        """
         self._require_phase(phase)
         claim_path = self.root / "claims" / f"{phase}.json"
         body = {"phase": phase, "claim": claim, "recorded_at": _utc_now()}
         claim_path.write_text(json.dumps(body, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        self.states[phase].claim = claim
-        self.states[phase].advanced = False
-        self.states[phase].advanced_at = None
+        st = self.states[phase]
+        st.claim = claim
+        st.advanced = False
+        st.advanced_at = None
+        # Invalidate prior measure so advance cannot reuse a stale PASS.
+        st.measure_verdict = None
+        st.measure_digest = None
+        st.measure_path = None
         self.save()
         return claim_path
 
@@ -114,7 +124,11 @@ class PhaseLedger:
         return result
 
     def advance(self, phase: str) -> PhaseState:
-        """Advance phase only if latest measure is PASS and prior phases advanced."""
+        """Advance phase only if latest measure is PASS and prior phases advanced.
+
+        Fail-closed: measure must exist, be PASS, and (when a claim is set)
+        cover that same claim text — not a superseded claim.
+        """
         self._require_phase(phase)
         idx = self.phases.index(phase)
         for prior in self.phases[:idx]:
@@ -131,6 +145,16 @@ class PhaseLedger:
             raise AdvanceError(
                 f"cannot advance {phase!r}: measure verdict is {st.measure_verdict!r}, not PASS"
             )
+        # Defense in depth: measured claim must match current claim if both set.
+        latest = self.root / "measures" / f"{phase}-latest.json"
+        if latest.is_file() and st.claim is not None:
+            capture = json.loads(latest.read_text(encoding="utf-8"))
+            measured_claim = capture.get("observations", {}).get("claim")
+            if measured_claim is not None and measured_claim != st.claim:
+                raise AdvanceError(
+                    f"cannot advance {phase!r}: measure covers claim "
+                    f"{measured_claim!r} but current claim is {st.claim!r}"
+                )
         st.advanced = True
         st.advanced_at = _utc_now()
         self.save()
