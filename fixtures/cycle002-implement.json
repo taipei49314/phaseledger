@@ -1,0 +1,32 @@
+{
+  "artifact_present": true,
+  "artifact_sha256": "bb1b157872fca517de469ef5edb614c720bde3ee1f8096368073616d8d52cf94",
+  "checks": [
+    {
+      "name": "verify_method",
+      "passed": true
+    },
+    {
+      "name": "ncycle_module",
+      "passed": true
+    },
+    {
+      "name": "gate_matrix_tests",
+      "passed": true
+    },
+    {
+      "name": "fuzz_tests",
+      "passed": true
+    },
+    {
+      "name": "regression_script",
+      "passed": true
+    },
+    {
+      "name": "gate_cases_in_log",
+      "passed": true
+    }
+  ],
+  "claim": "CYCLE-002 implement: verify+ncycle+gate matrix+fuzz+regression script",
+  "phase": "implement"
+}

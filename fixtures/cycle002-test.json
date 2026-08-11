@@ -1,0 +1,44 @@
+{
+  "artifact_present": true,
+  "artifact_sha256": "ba9d701bbe23fe4f84e05be88f8b5acc2ba702ed7ee24d64f265fcc6a6e8d883",
+  "checks": [
+    {
+      "name": "suite_ok",
+      "passed": true
+    },
+    {
+      "name": "enough_tests",
+      "passed": true
+    },
+    {
+      "name": "gates_in_log",
+      "passed": true
+    },
+    {
+      "name": "fuzz_in_log",
+      "passed": true
+    },
+    {
+      "name": "ncycle_in_log",
+      "passed": true
+    },
+    {
+      "name": "verify_in_log",
+      "passed": true
+    },
+    {
+      "name": "regression_guard_in_log",
+      "passed": true
+    },
+    {
+      "name": "ncycle_run_pass",
+      "passed": true
+    },
+    {
+      "name": "verify_corrupt_fail",
+      "passed": true
+    }
+  ],
+  "claim": "CYCLE-002 suite green: gates fuzz ncycle verify regression",
+  "phase": "test"
+}

@@ -1,25 +1,60 @@
-# Gate invariants (capability line **G**)
+# Invariants — Gate (G) + integrity (CYCLE-001 / CYCLE-002)
 
-Cycle scope: **G (Gate)** only. Lines M / L / C / O are not claimed complete here.
+This cycle set hardens **gate** and **integrity** depth inside `phaseledger` only.
+Lines M / L / C / O are not claimed fully complete beyond what is implemented here.
 
-These rules are enforced by the shipped `PhaseLedger` in `phaseledger/ledger.py`.
-Each invariant has a stable id mapped to a unittest that drives the real ledger path.
+## Gate (G)
 
 | ID | Rule | Test |
 |----|------|------|
-| **G-RECLAIM-INVALIDATES** | `record_claim` clears advance **and** prior measure fields. Advance after re-claim without a fresh measure must raise `AdvanceError`. | `test_reclaim_invalidates_prior_measure_for_advance` |
-| **G-CLAIM-MATCH** | Advance requires the latest measure capture’s observation `claim` to equal the current phase claim when both are set. Tampered claim text must refuse advance. | `test_advance_refuses_measure_for_different_claim` |
-| **G-ORDER** | A later phase cannot advance while any prior phase is not advanced. | `test_implement_requires_prior_plan` |
-| **G-PASS-ONLY** | Only measure verdict `PASS` authorizes advance; `INCOMPLETE` / `FAIL` / `UNKNOWN` refuse. | `test_advance_on_incomplete_refused`, `test_advance_on_fail_verdict_refused` |
-| **G-NO-MEASURE** | Advance with no measure recorded is refused (fail-closed). | `test_advance_without_measure_refused` |
-| **G-MISSING-CAPTURE** | If state claims a PASS measure but `{phase}-latest.json` is missing, advance is refused (fail-closed; no self-certify from ledger.json alone). | `test_advance_refuses_missing_latest_capture` |
+| **G-NO-MEASURE** | No measure → advance refused | `test_gate01_no_measure_refused` |
+| **G-INCOMPLETE** | INCOMPLETE measure → advance refused | `test_gate02_incomplete_refused` |
+| **G-FAIL** | FAIL measure → advance refused | `test_gate03_fail_verdict_refused` |
+| **G-UNKNOWN** | UNKNOWN measure → advance refused | `test_gate04_unknown_verdict_refused` |
+| **G-RECLAIM-INVALIDATES** | re-claim clears measure fields; stale PASS cannot advance | `test_gate05_reclaim_invalidates_measure`, `test_regression_guard_reclaim_must_clear_measure_fields` |
+| **G-CLAIM-MATCH** | measured claim must match current claim | `test_gate06_claim_mismatch_refused` |
+| **G-MISSING-CAPTURE** | PASS in state without latest file → refuse | `test_gate07_missing_latest_capture_refused` |
+| **G-ORDER-IMPLEMENT** | implement before plan advanced → refuse | `test_gate08_out_of_order_implement_refused` |
+| **G-ORDER-TEST** | test before plan advanced → refuse | `test_gate09_out_of_order_test_refused` |
+| **G-CAPTURE-VERDICT** | latest capture verdict must be PASS | `test_gate10_capture_verdict_tamper_refused` |
+| **G-REMEASURE-CLEARS-ADVANCE** | new measure clears advanced | `test_gate11_remeasure_clears_advanced` |
+| **G-PASS-AUTHORIZE** | PASS + capture → advance allowed | `test_gate12_pass_then_authorize` |
+
+## Measurer fail-closed (fuzz)
+
+| ID | Rule | Test |
+|----|------|------|
+| **M-FUZZ-NO-PASS-INCOMPLETE** | Fixed-seed random partial observations never yield PASS | `test_fuzz_missing_keys_never_pass`, `test_fuzz_empty_and_partial_never_pass` |
+| **M-INCOMPLETE-NO-ADVANCE** | Incomplete measure cannot authorize advance | `test_incomplete_not_advance_authorizing_via_ledger` |
+
+## Integrity (verify)
+
+| ID | Rule | Test |
+|----|------|------|
+| **V-HEALTHY** | Consistent ledger+captures → VERIFY PASS | `test_verify_healthy_pass` |
+| **V-CORRUPT-LEDGER** | Corrupt ledger.json → VERIFY FAIL | `test_verify_corrupt_ledger_json_fail` |
+| **V-MISSING-CAPTURE** | Missing latest capture with measure set → FAIL | `test_verify_missing_capture_fail` |
+| **V-RESTORE** | Honest re-measure restores VERIFY PASS | `test_verify_restored_after_remeasure` |
+
+## N-cycle
+
+| ID | Rule | Test |
+|----|------|------|
+| **N-FIVE-PASS** | 5 sequential mini-cycles all PASS | `test_five_mini_cycles_pass`, `test_cli_ncycle_five` |
+| **N-FAIL-CLOSED** | Bad measure aborts N-cycle | `test_ncycle_fails_closed_on_bad_measure` |
 
 ## Operating rule
 
 ```
 claim → measure → advance
+verify re-reads disk (ledger.json + *-latest.json)
+ncycle: N × (plan→implement→test) fail-closed
 ```
 
-- Claims are not trusted until measured.
-- Re-claim invalidates any prior measure for that phase.
-- Missing observation / missing capture is never treated as pass.
+## Local regression
+
+```bash
+python scripts/run_regression.py
+# or
+python -m unittest discover -s tests -v
+```

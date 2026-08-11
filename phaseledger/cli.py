@@ -1,4 +1,4 @@
-"""CLI for phaseledger: measure, claim, advance, status."""
+"""CLI for phaseledger: measure, claim, advance, status, verify, ncycle."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from typing import Any, Sequence
 
 from .ledger import AdvanceError, PhaseLedger
 from .measure import measure
+from .ncycle import run_n_cycles
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -26,7 +27,10 @@ def cmd_measure(args: argparse.Namespace) -> int:
         ledger = PhaseLedger.open(args.ledger)
         phase = args.phase or obs.get("phase")
         if not phase:
-            print("error: --phase required when --ledger is set and observations lack phase", file=sys.stderr)
+            print(
+                "error: --phase required when --ledger is set and observations lack phase",
+                file=sys.stderr,
+            )
             return 2
         result = ledger.record_measure(str(phase), obs)
     else:
@@ -65,6 +69,29 @@ def cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_verify(args: argparse.Namespace) -> int:
+    ledger = PhaseLedger.open(args.ledger)
+    result = ledger.verify()
+    text = result.format_text()
+    if args.out:
+        out_path = Path(args.out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(text, encoding="utf-8")
+    sys.stdout.write(text)
+    return 0 if result.ok else 1
+
+
+def cmd_ncycle(args: argparse.Namespace) -> int:
+    result = run_n_cycles(args.dir, count=args.count)
+    text = result.format_text()
+    if args.out:
+        out_path = Path(args.out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(text, encoding="utf-8")
+    sys.stdout.write(text)
+    return 0 if result.ok else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="phaseledger",
@@ -93,6 +120,24 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("status", help="Show phase ledger status")
     s.add_argument("--ledger", required=True, help="Ledger directory")
     s.set_defaults(func=cmd_status)
+
+    v = sub.add_parser("verify", help="Verify ledger.json vs measure captures (integrity)")
+    v.add_argument("--ledger", required=True, help="Ledger directory")
+    v.add_argument("--out", help="Write verify text to this path")
+    v.set_defaults(func=cmd_verify)
+
+    n = sub.add_parser(
+        "ncycle",
+        help="Run N sequential mini-cycles (claim→measure→advance×phases); fail-closed",
+    )
+    n.add_argument(
+        "--dir",
+        required=True,
+        help="Directory to hold mini-0..mini-(N-1) ledgers",
+    )
+    n.add_argument("--count", type=int, default=5, help="Number of mini-cycles (default 5)")
+    n.add_argument("--out", help="Write ncycle report to this path")
+    n.set_defaults(func=cmd_ncycle)
 
     return p
 

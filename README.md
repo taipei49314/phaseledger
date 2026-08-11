@@ -64,7 +64,9 @@ python -m unittest discover -s tests -v
 ## Gate invariants
 
 Capability line **G** rules live in [INVARIANTS.md](INVARIANTS.md).  
-Cycle record: [CYCLE-001.md](CYCLE-001.md).
+Cycle record: [CYCLE-001.md](CYCLE-001.md), [CYCLE-002.md](CYCLE-002.md).
+
+Heavy integrity: python -m phaseledger ncycle --dir .ncycle-runs --count 5, python -m phaseledger verify --ledger .phaseledger, python scripts/run_regression.py.
 
 ## Honest status
 

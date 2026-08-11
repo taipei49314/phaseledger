@@ -1,0 +1,20 @@
+{
+  "artifact_present": true,
+  "artifact_sha256": "5b5864ef02c283898d03edd37f80fbccf86aa3210929b5d7df69c8491d860e2e",
+  "checks": [
+    {
+      "name": "invariants_updated",
+      "passed": true
+    },
+    {
+      "name": "cycle002_drafted",
+      "passed": true
+    },
+    {
+      "name": "phaseledger_only",
+      "passed": true
+    }
+  ],
+  "claim": "CYCLE-002 heavy: 10+ gates, fuzz, N=5, verify corrupt/restore, local regression",
+  "phase": "plan"
+}

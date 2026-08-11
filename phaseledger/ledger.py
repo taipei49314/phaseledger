@@ -185,6 +185,111 @@ class PhaseLedger:
                 lines.append(f"      claim: {st.claim}")
         return "\n".join(lines) + "\n"
 
+    def verify(self) -> "VerifyResult":
+        """Re-read ledger.json + latest captures; refuse inconsistent or advanced-without-PASS state.
+
+        Fail-closed: any integrity problem yields verdict FAIL (ok=False).
+        Does not trust in-memory objects alone — reloads from disk when present.
+        """
+        reasons: list[str] = []
+        ledger_path = self.root / "ledger.json"
+        if not ledger_path.is_file():
+            return VerifyResult(ok=False, verdict="FAIL", reasons=("missing ledger.json",))
+
+        try:
+            data = json.loads(ledger_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as e:
+            return VerifyResult(ok=False, verdict="FAIL", reasons=(f"ledger.json corrupt: {e}",))
+
+        phases = tuple(data.get("phases", list(self.phases)))
+        raw_states = data.get("states", {})
+        if not isinstance(raw_states, dict):
+            return VerifyResult(ok=False, verdict="FAIL", reasons=("ledger states not an object",))
+
+        for phase in phases:
+            st_raw = raw_states.get(phase)
+            if not isinstance(st_raw, dict):
+                reasons.append(f"{phase}: missing state object")
+                continue
+            advanced = bool(st_raw.get("advanced"))
+            claim = st_raw.get("claim")
+            measure_verdict = st_raw.get("measure_verdict")
+            measure_digest = st_raw.get("measure_digest")
+            latest = self.root / "measures" / f"{phase}-latest.json"
+
+            if measure_verdict is not None and not latest.is_file():
+                reasons.append(f"{phase}: measure_verdict set but latest capture missing")
+                continue
+
+            if advanced and measure_verdict != "PASS":
+                reasons.append(
+                    f"{phase}: advanced but measure_verdict is {measure_verdict!r}, not PASS"
+                )
+
+            if not latest.is_file():
+                if advanced:
+                    reasons.append(f"{phase}: advanced but latest capture missing")
+                continue
+
+            try:
+                capture = json.loads(latest.read_text(encoding="utf-8"))
+            except json.JSONDecodeError as e:
+                reasons.append(f"{phase}: latest capture corrupt: {e}")
+                continue
+
+            cap_result = capture.get("result") if isinstance(capture, dict) else None
+            if not isinstance(cap_result, dict):
+                reasons.append(f"{phase}: latest capture missing result object")
+                continue
+
+            cap_verdict = cap_result.get("verdict")
+            if measure_verdict is not None and cap_verdict != measure_verdict:
+                reasons.append(
+                    f"{phase}: state measure_verdict {measure_verdict!r} != capture {cap_verdict!r}"
+                )
+
+            cap_digest = cap_result.get("observation_digest")
+            if measure_digest is not None and cap_digest is not None and measure_digest != cap_digest:
+                reasons.append(f"{phase}: state digest != capture digest")
+
+            obs = capture.get("observations") if isinstance(capture, dict) else None
+            if isinstance(obs, dict) and claim is not None:
+                measured_claim = obs.get("claim")
+                if measured_claim is not None and measured_claim != claim:
+                    reasons.append(
+                        f"{phase}: claim {claim!r} != measured claim {measured_claim!r}"
+                    )
+
+            if advanced and cap_verdict != "PASS":
+                reasons.append(f"{phase}: advanced but capture verdict is {cap_verdict!r}")
+
+        # Prior-phase ordering for advanced phases
+        for i, phase in enumerate(phases):
+            st_raw = raw_states.get(phase) or {}
+            if not st_raw.get("advanced"):
+                continue
+            for prior in phases[:i]:
+                prior_raw = raw_states.get(prior) or {}
+                if not prior_raw.get("advanced"):
+                    reasons.append(
+                        f"{phase}: advanced while prior phase {prior!r} is not advanced"
+                    )
+
+        if reasons:
+            return VerifyResult(ok=False, verdict="FAIL", reasons=tuple(reasons))
+        return VerifyResult(ok=True, verdict="PASS", reasons=())
+
+    def verify_text(self) -> str:
+        result = self.verify()
+        lines = [f"VERIFY: {result.verdict}", f"ok: {str(result.ok).lower()}"]
+        if result.reasons:
+            lines.append("reasons:")
+            for r in result.reasons:
+                lines.append(f"  - {r}")
+        else:
+            lines.append("reasons: (none)")
+        return "\n".join(lines) + "\n"
+
     def _require_phase(self, phase: str) -> None:
         if phase not in self.phases:
             raise ValueError(f"unknown phase {phase!r}; known: {list(self.phases)}")
@@ -192,3 +297,22 @@ class PhaseLedger:
 
 class AdvanceError(RuntimeError):
     """Raised when phase advance is refused (fail-closed)."""
+
+
+@dataclass(frozen=True)
+class VerifyResult:
+    """Outcome of ledger integrity verification."""
+
+    ok: bool
+    verdict: str
+    reasons: tuple[str, ...] = ()
+
+    def format_text(self) -> str:
+        lines = [f"VERIFY: {self.verdict}", f"ok: {str(self.ok).lower()}"]
+        if self.reasons:
+            lines.append("reasons:")
+            for r in self.reasons:
+                lines.append(f"  - {r}")
+        else:
+            lines.append("reasons: (none)")
+        return "\n".join(lines) + "\n"
