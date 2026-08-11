@@ -14,3 +14,7 @@ build/
 *.json.tmp
 .venv/
 venv/
+
+_suite_out.txt
+*.tmp
+
