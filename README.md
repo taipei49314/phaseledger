@@ -71,7 +71,29 @@ python -m unittest discover -s tests -v
 python -m phaseledger doctor
 ```
 
-GitHub Actions runs unit tests + doctor + CLI smoke on Python 3.10 / 3.11 / 3.12.
+### Latest results (recorded 2026-08-11)
+
+| Check | Result |
+|-------|--------|
+| **GitHub visibility** | **Public** — https://github.com/taipei49314/phaseledger |
+| **CI workflow** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on every push/PR to `main` |
+| **Latest CI run** | **success** — [actions/runs/31477422751](https://github.com/taipei49314/phaseledger/actions/runs/31477422751) (`6a57446`) |
+| **CI matrix** | Python **3.10**, **3.11**, **3.12** (ubuntu-latest) — all green |
+| **CI steps (each Python)** | `pip install -e .` → unit tests → `doctor` → CLI smoke (`init` / `measure` complete+incomplete exit 4 / `ncycle` / `maintenance` / `verify`) |
+| **CI package job** | sdist + wheel build — green |
+| **Local unit suite** | **`Ran 99 tests` … `OK`** (stdlib `unittest`, no extra test deps) |
+| **Incomplete fixture** | exit code **4**, verdict **`INCOMPLETE`** (fail-closed; never treated as pass) |
+| **User-path smoke** | claim → measure → advance × plan/implement/test; re-claim plan **cascades** later phases to pending; export/import/verify PASS |
+
+Badge at the top of this README tracks live CI status.
+
+### Re-run locally
+
+```bash
+python -m unittest discover -s tests -v
+python -m phaseledger doctor
+python scripts/run_regression.py
+```
 
 ## Gate invariants
 
@@ -95,17 +117,19 @@ python -m phaseledger doctor
 
 ## Honest status
 
-Pre-alpha vertical slice:
+Pre-alpha vertical slice — **public**, **CI green**, **not** third-party audited:
 
-- Measurer core + CLI: implemented (`schema_version`, `--strict` in CYCLE-003)
-- Phase ledger + append-only `events.jsonl` + `history` (CYCLE-003)
-- Gate invariants (G): CYCLE-001 / CYCLE-002
-- External audit: none
-- Network at measure time: not required
-- Capability lines M / L: partially deepened in CYCLE-003 (not fully complete)
-- C / O: not claimed
+| Area | Status |
+|------|--------|
+| Measurer | PASS/FAIL/UNKNOWN/INCOMPLETE; `schema_version`; `--strict`; boundary fixtures |
+| Ledger | claim → measure → advance; re-claim/**re-measure cascade** on later phases; `events.jsonl` |
+| Integrity | `verify`, refuse codes (`NO_MEASURE`, `CLAIM_MISMATCH`, …), export/import bundle |
+| Ops CLI | `init`, `status`, `history`, `ncycle`, `maintenance`, `doctor` |
+| Tests | **99** unit tests; CI on 3.10–3.12; doctor self-check |
+| External audit | none |
+| Network at measure time | not required |
 
-Missing observation is never treated as pass. This README is a claim; the fixtures and tests are the evidence.
+Missing observation is never treated as pass. This README is a claim; the fixtures, tests, and CI logs are the evidence.
 
 ## License
 
