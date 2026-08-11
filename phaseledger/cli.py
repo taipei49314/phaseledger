@@ -18,7 +18,14 @@ from .ncycle import run_n_cycles
 
 def _load_json(path: Path) -> dict[str, Any]:
     # utf-8-sig strips a BOM if a Windows editor left one; content is otherwise UTF-8.
-    data = json.loads(path.read_text(encoding="utf-8-sig"))
+    try:
+        raw = path.read_text(encoding="utf-8-sig")
+    except OSError as e:
+        raise SystemExit(f"cannot read observation file: {path}: {e}") from e
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise SystemExit(f"observation file is not valid JSON: {path}: {e}") from e
     if not isinstance(data, dict):
         raise SystemExit(f"observation file must be a JSON object: {path}")
     return data
@@ -28,7 +35,6 @@ def cmd_measure(args: argparse.Namespace) -> int:
     obs = _load_json(Path(args.observations))
     strict = bool(getattr(args, "strict", False))
     if args.ledger:
-        ledger = PhaseLedger.open(args.ledger)
         phase = args.phase or obs.get("phase")
         if not phase:
             print(
@@ -36,6 +42,8 @@ def cmd_measure(args: argparse.Namespace) -> int:
                 file=sys.stderr,
             )
             return 2
+        # Open only after phase is known — avoid creating empty ledger on misuse.
+        ledger = PhaseLedger.open(args.ledger)
         result = ledger.record_measure(str(phase), obs, strict=strict)
     else:
         result = measure(obs, strict=strict)

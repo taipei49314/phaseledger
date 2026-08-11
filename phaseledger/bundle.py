@@ -27,20 +27,33 @@ def export_bundle(ledger_root: str | Path, out_path: str | Path) -> Path:
     measures_dir = root / "measures"
     if measures_dir.is_dir():
         for p in sorted(measures_dir.glob("*.json")):
-            measures[p.name] = json.loads(p.read_text(encoding="utf-8"))
+            try:
+                measures[p.name] = json.loads(p.read_text(encoding="utf-8"))
+            except json.JSONDecodeError as e:
+                raise ValueError(
+                    f"cannot export: corrupt measure file {p.name}: {e}"
+                ) from e
 
     claims: dict[str, Any] = {}
     claims_dir = root / "claims"
     if claims_dir.is_dir():
         for p in sorted(claims_dir.glob("*.json")):
-            claims[p.name] = json.loads(p.read_text(encoding="utf-8"))
+            try:
+                claims[p.name] = json.loads(p.read_text(encoding="utf-8"))
+            except json.JSONDecodeError as e:
+                raise ValueError(
+                    f"cannot export: corrupt claim file {p.name}: {e}"
+                ) from e
 
     events_raw = ""
     events_path = root / "events.jsonl"
     if events_path.is_file():
         events_raw = events_path.read_text(encoding="utf-8")
 
-    ledger_obj = json.loads((root / "ledger.json").read_text(encoding="utf-8"))
+    try:
+        ledger_obj = json.loads((root / "ledger.json").read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        raise ValueError(f"cannot export: ledger.json corrupt: {e}") from e
 
     bundle = {
         "bundle_version": BUNDLE_VERSION,
@@ -57,12 +70,23 @@ def export_bundle(ledger_root: str | Path, out_path: str | Path) -> Path:
 
 def import_bundle(bundle_path: str | Path, dest_root: str | Path) -> PhaseLedger:
     """Restore a bundle into dest_root; fail if post-import verify is not PASS."""
-    data = json.loads(Path(bundle_path).read_text(encoding="utf-8-sig"))
+    try:
+        data = json.loads(Path(bundle_path).read_text(encoding="utf-8-sig"))
+    except json.JSONDecodeError as e:
+        raise ValueError(f"bundle JSON corrupt: {e}") from e
     if not isinstance(data, dict):
         raise ValueError("bundle must be a JSON object")
     ver = data.get("bundle_version")
     if ver != BUNDLE_VERSION:
         raise ValueError(f"unsupported bundle_version: {ver!r}")
+    if "ledger" not in data:
+        raise ValueError("bundle missing required key 'ledger' (fail-closed)")
+    if not isinstance(data["ledger"], dict):
+        raise ValueError("bundle 'ledger' must be an object (fail-closed)")
+    claims = data.get("claims") or {}
+    measures = data.get("measures") or {}
+    if not isinstance(claims, dict) or not isinstance(measures, dict):
+        raise ValueError("bundle claims/measures must be objects (fail-closed)")
 
     dest = Path(dest_root)
     if dest.exists() and any(dest.iterdir()):
@@ -71,24 +95,32 @@ def import_bundle(bundle_path: str | Path, dest_root: str | Path) -> PhaseLedger
     (dest / "measures").mkdir(exist_ok=True)
     (dest / "claims").mkdir(exist_ok=True)
 
-    (dest / "ledger.json").write_text(
-        json.dumps(data["ledger"], indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
-    (dest / "events.jsonl").write_text(data.get("events_jsonl") or "", encoding="utf-8")
-
-    for name, obj in (data.get("claims") or {}).items():
-        (dest / "claims" / name).write_text(
-            json.dumps(obj, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    try:
+        (dest / "ledger.json").write_text(
+            json.dumps(data["ledger"], indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
-    for name, obj in (data.get("measures") or {}).items():
-        (dest / "measures" / name).write_text(
-            json.dumps(obj, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-        )
+        (dest / "events.jsonl").write_text(data.get("events_jsonl") or "", encoding="utf-8")
 
-    ledger = PhaseLedger.open(dest)
-    v = ledger.verify()
-    if not v.ok:
-        # fail closed: remove partial import
-        shutil.rmtree(dest)
-        raise ValueError(f"import verify FAIL: {v.reasons}")
-    return ledger
+        for name, obj in claims.items():
+            if not isinstance(obj, dict):
+                raise ValueError(f"claim {name!r} must be an object")
+            (dest / "claims" / name).write_text(
+                json.dumps(obj, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+        for name, obj in measures.items():
+            if not isinstance(obj, dict):
+                raise ValueError(f"measure {name!r} must be an object")
+            (dest / "measures" / name).write_text(
+                json.dumps(obj, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+
+        ledger = PhaseLedger.open(dest)
+        v = ledger.verify()
+        if not v.ok:
+            raise ValueError(f"import verify FAIL: {v.reasons}")
+        return ledger
+    except Exception:
+        # fail closed: remove partial import on any error after dest created
+        if dest.exists():
+            shutil.rmtree(dest, ignore_errors=True)
+        raise

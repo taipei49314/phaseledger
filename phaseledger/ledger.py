@@ -53,11 +53,27 @@ class PhaseLedger:
             events.write_text("", encoding="utf-8")
         ledger_path = root_path / "ledger.json"
         if ledger_path.is_file():
-            data = json.loads(ledger_path.read_text(encoding="utf-8"))
-            states = {
-                name: PhaseState(**raw)
-                for name, raw in data.get("states", {}).items()
-            }
+            try:
+                data = json.loads(ledger_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError as e:
+                raise ValueError(f"ledger.json corrupt (fail-closed): {e}") from e
+            if not isinstance(data, dict):
+                raise ValueError("ledger.json must be a JSON object (fail-closed)")
+            raw_states = data.get("states", {})
+            if not isinstance(raw_states, dict):
+                raise ValueError("ledger.json states must be an object (fail-closed)")
+            states: dict[str, PhaseState] = {}
+            for name, raw in raw_states.items():
+                if not isinstance(raw, dict):
+                    raise ValueError(
+                        f"ledger.json states[{name!r}] must be an object (fail-closed)"
+                    )
+                try:
+                    states[name] = PhaseState(**raw)
+                except TypeError as e:
+                    raise ValueError(
+                        f"ledger.json states[{name!r}] invalid fields (fail-closed): {e}"
+                    ) from e
             phase_list = tuple(data.get("phases", list(phases)))
             for p in phase_list:
                 if p not in states:
