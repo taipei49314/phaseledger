@@ -64,7 +64,8 @@ python -m unittest discover -s tests -v
 ## Gate invariants
 
 Capability line **G** rules live in [INVARIANTS.md](INVARIANTS.md).  
-Cycle records: [CYCLE-001](CYCLE-001.md) … [CYCLE-008](CYCLE-008.md).  
+Cycle records: [CYCLE-001](CYCLE-001.md) … [CYCLE-009](CYCLE-009.md).  
+Operator notes: [AGENTS.md](AGENTS.md) · [SECURITY.md](SECURITY.md).  
 Measure boundaries: [docs/MEASURE_BOUNDARIES.md](docs/MEASURE_BOUNDARIES.md).
 
 ```bash
