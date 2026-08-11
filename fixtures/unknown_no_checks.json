@@ -1,0 +1,7 @@
+{
+  "phase": "test",
+  "claim": "artifact only, no checks",
+  "artifact_present": true,
+  "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "checks": []
+}

@@ -1,0 +1,9 @@
+{
+  "phase": "implement",
+  "claim": "implementation complete",
+  "artifact_present": true,
+  "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "checks": [
+    {"name": "core_tests", "passed": false}
+  ]
+}

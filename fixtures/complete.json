@@ -1,0 +1,11 @@
+{
+  "phase": "plan",
+  "claim": "measurer-first plan complete with fixtures and phase gates defined",
+  "artifact_present": true,
+  "artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "checks": [
+    {"name": "readme_states_measurer_first", "passed": true},
+    {"name": "phases_defined", "passed": true},
+    {"name": "fail_closed_documented", "passed": true}
+  ]
+}

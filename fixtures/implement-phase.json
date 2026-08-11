@@ -1,0 +1,28 @@
+{
+  "artifact_present": true,
+  "artifact_sha256": "e43188ce9115047622ad454bf73cf90c9bf07163ef3c4b98470516029cb2a551",
+  "checks": [
+    {
+      "name": "measure_py_exists",
+      "passed": true
+    },
+    {
+      "name": "cli_py_exists",
+      "passed": true
+    },
+    {
+      "name": "ledger_py_exists",
+      "passed": true
+    },
+    {
+      "name": "fixtures_complete",
+      "passed": true
+    },
+    {
+      "name": "fixtures_incomplete",
+      "passed": true
+    }
+  ],
+  "claim": "measurer core + CLI + ledger implemented",
+  "phase": "implement"
+}
