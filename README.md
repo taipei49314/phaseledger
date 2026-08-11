@@ -3,8 +3,10 @@
 > **Local-first phase ledger.** Every phase advance requires a fresh deterministic measurer verdict.  
 > Claims are not trusted until measured.
 
+[![CI](https://github.com/taipei49314/phaseledger/actions/workflows/ci.yml/badge.svg)](https://github.com/taipei49314/phaseledger/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange.svg)](#honest-status)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://github.com/taipei49314/phaseledger)
 
 Aligned with [Nelson Stack](https://github.com/taipei49314/nelson-stack) principles:
 
@@ -48,18 +50,28 @@ Each advance must carry a measurer capture. The ledger records:
 ## Install / run
 
 ```bash
-# from repo root, no install required
+# clone then install (editable)
+git clone https://github.com/taipei49314/phaseledger.git
+cd phaseledger
+pip install -e .
+
 python -m phaseledger --help
+python -m phaseledger init --ledger .phaseledger
 python -m phaseledger measure fixtures/complete.json
 python -m phaseledger measure fixtures/incomplete.json
 python -m phaseledger status --ledger .phaseledger
 ```
 
-## Tests
+Without install, from repo root: `PYTHONPATH=. python -m phaseledger ...`
+
+## Tests / CI
 
 ```bash
 python -m unittest discover -s tests -v
+python -m phaseledger doctor
 ```
+
+GitHub Actions runs unit tests + doctor + CLI smoke on Python 3.10 / 3.11 / 3.12.
 
 ## Gate invariants
 

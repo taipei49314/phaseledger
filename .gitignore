@@ -16,6 +16,7 @@ build/
 venv/
 
 _suite_out.txt
+_test_out.txt
 *.tmp
 
 
