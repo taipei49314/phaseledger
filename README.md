@@ -64,7 +64,7 @@ python -m unittest discover -s tests -v
 ## Gate invariants
 
 Capability line **G** rules live in [INVARIANTS.md](INVARIANTS.md).  
-Cycle records: [CYCLE-001](CYCLE-001.md) … [CYCLE-005](CYCLE-005.md).  
+Cycle records: [CYCLE-001](CYCLE-001.md) … [CYCLE-006](CYCLE-006.md).  
 Measure boundaries: [docs/MEASURE_BOUNDARIES.md](docs/MEASURE_BOUNDARIES.md).
 
 ```bash
@@ -73,6 +73,8 @@ python -m phaseledger maintenance --ledger .phaseledger --steps 5
 python -m phaseledger ncycle --dir .ncycle-runs --count 5
 python -m phaseledger verify --ledger .phaseledger
 python -m phaseledger history --ledger .phaseledger
+python -m phaseledger export --ledger .phaseledger --out evidence/bundle.json
+python -m phaseledger import --bundle evidence/bundle.json --ledger .restored
 python -m phaseledger measure fixtures/complete.json --strict
 python scripts/run_regression.py
 ```

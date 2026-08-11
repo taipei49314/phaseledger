@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+from .bundle import export_bundle, import_bundle
 from .ledger import AdvanceError, PhaseLedger
 from .maintenance import run_maintenance
 from .measure import measure
@@ -127,6 +128,27 @@ def cmd_maintenance(args: argparse.Namespace) -> int:
     return 0 if result.ok else 1
 
 
+def cmd_export(args: argparse.Namespace) -> int:
+    try:
+        path = export_bundle(args.ledger, args.out)
+    except (ValueError, OSError, json.JSONDecodeError) as e:
+        print(f"EXPORT_FAILED: {e}", file=sys.stderr)
+        return 1
+    print(f"exported: {path}")
+    return 0
+
+
+def cmd_import(args: argparse.Namespace) -> int:
+    try:
+        ledger = import_bundle(args.bundle, args.ledger)
+    except (ValueError, OSError, json.JSONDecodeError) as e:
+        print(f"IMPORT_FAILED: {e}", file=sys.stderr)
+        return 1
+    print(f"imported: {ledger.root}")
+    print(ledger.verify().format_text().strip())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="phaseledger",
@@ -196,6 +218,16 @@ def build_parser() -> argparse.ArgumentParser:
     mt.add_argument("--steps", type=int, default=5, help="Maintenance steps (default 5)")
     mt.add_argument("--out", help="Write maintenance report to this path")
     mt.set_defaults(func=cmd_maintenance)
+
+    ex = sub.add_parser("export", help="Export a verified ledger to a portable JSON bundle")
+    ex.add_argument("--ledger", required=True, help="Ledger directory")
+    ex.add_argument("--out", required=True, help="Output bundle path (.json)")
+    ex.set_defaults(func=cmd_export)
+
+    im = sub.add_parser("import", help="Import a bundle into an empty directory (verify required)")
+    im.add_argument("--bundle", required=True, help="Bundle JSON path")
+    im.add_argument("--ledger", required=True, help="Empty destination ledger directory")
+    im.set_defaults(func=cmd_import)
 
     return p
 
