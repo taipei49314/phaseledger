@@ -8,6 +8,8 @@ build/
 .mypy_cache/
 .phaseledger/
 .phaseledger-*/
+.ncycle-runs/
+.verify-demo/
 
 *.json.tmp
 .venv/
