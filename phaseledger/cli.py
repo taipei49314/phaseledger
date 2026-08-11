@@ -61,7 +61,10 @@ def cmd_advance(args: argparse.Namespace) -> int:
     except AdvanceError as e:
         print(f"ADVANCE_REFUSED: {e}", file=sys.stderr)
         return 1
-    print(f"ADVANCED: {st.name} at {st.advanced_at} (measure={st.measure_verdict})")
+    print(
+        f"ADVANCED: CODE=ADVANCED {st.name} at {st.advanced_at} "
+        f"(measure={st.measure_verdict})"
+    )
     return 0
 
 

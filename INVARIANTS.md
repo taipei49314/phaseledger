@@ -68,6 +68,21 @@ ncycle: N × (plan→implement→test) fail-closed
 | **L-HISTORY-CLI** | history lists events | `test_history_text_lists_events`, `test_cli_history` |
 | **L-VERIFY-EVENTS** | advanced phases must appear in events.jsonl | `test_verify_requires_advance_in_event_log` |
 
+## Advance refuse codes (CYCLE-005)
+
+| Code | Meaning | Test |
+|------|---------|------|
+| `NO_MEASURE` | no measure | `test_code_no_measure` |
+| `PRIOR_NOT_ADVANCED` | prior phase pending | `test_code_prior_not_advanced` |
+| `NON_PASS_MEASURE` | measure not PASS | `test_code_non_pass_measure` |
+| `MISSING_CAPTURE` | latest file gone | `test_code_missing_capture` |
+| `CLAIM_MISMATCH` | claim ≠ measured | `test_code_claim_mismatch` |
+| `CAPTURE_NON_PASS` | capture verdict not PASS | `test_code_capture_non_pass` |
+| `DIGEST_MISMATCH` | state digest ≠ capture | `test_code_digest_mismatch` |
+| `CAPTURE_CORRUPT` | unreadable capture | `test_code_capture_corrupt` |
+
+Boundary matrix: [docs/MEASURE_BOUNDARIES.md](docs/MEASURE_BOUNDARIES.md)
+
 ## Local regression
 
 ```bash

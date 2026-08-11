@@ -205,45 +205,79 @@ class PhaseLedger:
         for prior in self.phases[:idx]:
             if not self.states[prior].advanced:
                 raise AdvanceError(
-                    f"cannot advance {phase!r}: prior phase {prior!r} is not advanced"
+                    f"cannot advance {phase!r}: prior phase {prior!r} is not advanced",
+                    code="PRIOR_NOT_ADVANCED",
                 )
         st = self.states[phase]
         if st.measure_verdict is None:
             raise AdvanceError(
-                f"cannot advance {phase!r}: no measure recorded (fail-closed)"
+                f"cannot advance {phase!r}: no measure recorded (fail-closed)",
+                code="NO_MEASURE",
             )
         if st.measure_verdict != "PASS":
             raise AdvanceError(
-                f"cannot advance {phase!r}: measure verdict is {st.measure_verdict!r}, not PASS"
+                f"cannot advance {phase!r}: measure verdict is {st.measure_verdict!r}, not PASS",
+                code="NON_PASS_MEASURE",
             )
         # G-MISSING-CAPTURE: ledger.json PASS is not enough without the capture file.
         latest = self.root / "measures" / f"{phase}-latest.json"
         if not latest.is_file():
             raise AdvanceError(
-                f"cannot advance {phase!r}: missing latest measure capture (fail-closed)"
+                f"cannot advance {phase!r}: missing latest measure capture (fail-closed)",
+                code="MISSING_CAPTURE",
             )
+        try:
+            capture = json.loads(latest.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as e:
+            raise AdvanceError(
+                f"cannot advance {phase!r}: latest capture corrupt: {e}",
+                code="CAPTURE_CORRUPT",
+            ) from e
         # G-CLAIM-MATCH: measured claim must match current claim if both set.
-        capture = json.loads(latest.read_text(encoding="utf-8"))
         if st.claim is not None:
             measured_claim = capture.get("observations", {}).get("claim")
             if measured_claim is not None and measured_claim != st.claim:
                 raise AdvanceError(
                     f"cannot advance {phase!r}: measure covers claim "
-                    f"{measured_claim!r} but current claim is {st.claim!r}"
+                    f"{measured_claim!r} but current claim is {st.claim!r}",
+                    code="CLAIM_MISMATCH",
                 )
         # Capture must itself record PASS (not only state fields).
-        capture_verdict = capture.get("result", {}).get("verdict")
+        cap_result = capture.get("result") if isinstance(capture, dict) else None
+        if not isinstance(cap_result, dict):
+            raise AdvanceError(
+                f"cannot advance {phase!r}: latest capture missing result object",
+                code="CAPTURE_CORRUPT",
+            )
+        capture_verdict = cap_result.get("verdict")
         if capture_verdict != "PASS":
             raise AdvanceError(
                 f"cannot advance {phase!r}: latest capture verdict is "
-                f"{capture_verdict!r}, not PASS"
+                f"{capture_verdict!r}, not PASS",
+                code="CAPTURE_NON_PASS",
+            )
+        # Digest in state must match capture (tamper detection).
+        cap_digest = cap_result.get("observation_digest")
+        if (
+            st.measure_digest is not None
+            and cap_digest is not None
+            and st.measure_digest != cap_digest
+        ):
+            raise AdvanceError(
+                f"cannot advance {phase!r}: state digest != capture digest",
+                code="DIGEST_MISMATCH",
             )
         st.advanced = True
         st.advanced_at = _utc_now()
         self.save()
         self._append_event(
             "advance",
-            {"phase": phase, "advanced_at": st.advanced_at, "verdict": st.measure_verdict},
+            {
+                "phase": phase,
+                "advanced_at": st.advanced_at,
+                "verdict": st.measure_verdict,
+                "code": "ADVANCED",
+            },
         )
         return st
 
@@ -403,7 +437,18 @@ class PhaseLedger:
 
 
 class AdvanceError(RuntimeError):
-    """Raised when phase advance is refused (fail-closed)."""
+    """Raised when phase advance is refused (fail-closed).
+
+    ``code`` is a stable machine-readable token (see INVARIANTS / CYCLE-005).
+    """
+
+    def __init__(self, message: str, code: str = "ADVANCE_REFUSED") -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+    def __str__(self) -> str:
+        return f"CODE={self.code} {self.message}"
 
 
 @dataclass(frozen=True)
