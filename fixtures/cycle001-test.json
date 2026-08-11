@@ -1,0 +1,32 @@
+{
+  "artifact_present": true,
+  "artifact_sha256": "df0b0c401b023c1fd2b22073b44525a121a2307a048feed636b60cb297f15a81",
+  "checks": [
+    {
+      "name": "suite_ok",
+      "passed": true
+    },
+    {
+      "name": "enough_tests",
+      "passed": true
+    },
+    {
+      "name": "reclaim_in_log",
+      "passed": true
+    },
+    {
+      "name": "claim_match_in_log",
+      "passed": true
+    },
+    {
+      "name": "missing_capture_in_log",
+      "passed": true
+    },
+    {
+      "name": "cycle001_md_exists",
+      "passed": true
+    }
+  ],
+  "claim": "CYCLE-001 Gate tests pass on shipped path including reclaim, claim-match, missing-capture",
+  "phase": "test"
+}

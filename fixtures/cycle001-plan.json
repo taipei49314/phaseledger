@@ -1,0 +1,11 @@
+{
+  "phase": "plan",
+  "claim": "CYCLE-001 Gate (G) invariant pack: document invariants, reclaim/claim-match/missing-capture edges, phase measures",
+  "artifact_present": true,
+  "artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "checks": [
+    {"name": "invariants_md_planned", "passed": true},
+    {"name": "capability_line_is_G_only", "passed": true},
+    {"name": "no_external_repo_integration", "passed": true}
+  ]
+}

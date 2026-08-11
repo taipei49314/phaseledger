@@ -61,14 +61,21 @@ python -m phaseledger status --ledger .phaseledger
 python -m unittest discover -s tests -v
 ```
 
+## Gate invariants
+
+Capability line **G** rules live in [INVARIANTS.md](INVARIANTS.md).  
+Cycle record: [CYCLE-001.md](CYCLE-001.md).
+
 ## Honest status
 
 Pre-alpha vertical slice:
 
 - Measurer core + CLI: implemented
 - Phase ledger (plan / implement / test): implemented
+- Gate invariants (G): documented and tested (CYCLE-001)
 - External audit: none
 - Network at measure time: not required
+- Capability lines M / L / C / O: not claimed this cycle
 
 Missing observation is never treated as pass. This README is a claim; the fixtures and tests are the evidence.
 

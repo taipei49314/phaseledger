@@ -145,16 +145,28 @@ class PhaseLedger:
             raise AdvanceError(
                 f"cannot advance {phase!r}: measure verdict is {st.measure_verdict!r}, not PASS"
             )
-        # Defense in depth: measured claim must match current claim if both set.
+        # G-MISSING-CAPTURE: ledger.json PASS is not enough without the capture file.
         latest = self.root / "measures" / f"{phase}-latest.json"
-        if latest.is_file() and st.claim is not None:
-            capture = json.loads(latest.read_text(encoding="utf-8"))
+        if not latest.is_file():
+            raise AdvanceError(
+                f"cannot advance {phase!r}: missing latest measure capture (fail-closed)"
+            )
+        # G-CLAIM-MATCH: measured claim must match current claim if both set.
+        capture = json.loads(latest.read_text(encoding="utf-8"))
+        if st.claim is not None:
             measured_claim = capture.get("observations", {}).get("claim")
             if measured_claim is not None and measured_claim != st.claim:
                 raise AdvanceError(
                     f"cannot advance {phase!r}: measure covers claim "
                     f"{measured_claim!r} but current claim is {st.claim!r}"
                 )
+        # Capture must itself record PASS (not only state fields).
+        capture_verdict = capture.get("result", {}).get("verdict")
+        if capture_verdict != "PASS":
+            raise AdvanceError(
+                f"cannot advance {phase!r}: latest capture verdict is "
+                f"{capture_verdict!r}, not PASS"
+            )
         st.advanced = True
         st.advanced_at = _utc_now()
         self.save()

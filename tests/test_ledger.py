@@ -107,7 +107,7 @@ class TestPhaseLedger(unittest.TestCase):
             self.assertEqual(st2.claim, "claim B")
 
     def test_advance_refuses_measure_for_different_claim(self) -> None:
-        """Even if measure fields are set, claim mismatch must refuse advance."""
+        """G-CLAIM-MATCH: claim mismatch must refuse advance."""
         with tempfile.TemporaryDirectory() as tmp:
             ledger = PhaseLedger.open(tmp)
             ledger.record_claim("plan", "claim A")
@@ -118,6 +118,60 @@ class TestPhaseLedger(unittest.TestCase):
             with self.assertRaises(AdvanceError) as ctx:
                 ledger.advance("plan")
             self.assertIn("claim", str(ctx.exception).lower())
+            self.assertFalse(ledger.states["plan"].advanced)
+
+    def test_advance_on_fail_verdict_refused(self) -> None:
+        """G-PASS-ONLY: FAIL measure must not authorize advance."""
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = PhaseLedger.open(tmp)
+            ledger.record_claim("plan", "will fail")
+            fail_obs = {
+                "phase": "plan",
+                "claim": "will fail",
+                "artifact_present": False,
+                "artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "checks": [{"name": "ok", "passed": True}],
+            }
+            result = ledger.record_measure("plan", fail_obs)
+            self.assertEqual(result.verdict, "FAIL")
+            with self.assertRaises(AdvanceError) as ctx:
+                ledger.advance("plan")
+            msg = str(ctx.exception).lower()
+            self.assertIn("not pass", msg)
+            self.assertIn("'fail'", msg)
+            self.assertFalse(ledger.states["plan"].advanced)
+
+    def test_advance_refuses_missing_latest_capture(self) -> None:
+        """G-MISSING-CAPTURE: PASS in state without latest file must refuse."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            ledger = PhaseLedger.open(root)
+            ledger.record_claim("plan", "capture required")
+            r = ledger.record_measure("plan", _pass_obs("plan", "capture required"))
+            self.assertEqual(r.verdict, "PASS")
+            latest = root / "measures" / "plan-latest.json"
+            self.assertTrue(latest.is_file())
+            latest.unlink()
+            # State still says PASS — must not self-certify without capture.
+            self.assertEqual(ledger.states["plan"].measure_verdict, "PASS")
+            with self.assertRaises(AdvanceError) as ctx:
+                ledger.advance("plan")
+            msg = str(ctx.exception).lower()
+            self.assertIn("missing", msg)
+            self.assertIn("capture", msg)
+            self.assertFalse(ledger.states["plan"].advanced)
+
+    def test_out_of_order_test_requires_plan_and_implement(self) -> None:
+        """G-ORDER: test cannot advance before plan and implement."""
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = PhaseLedger.open(tmp)
+            ledger.record_claim("test", "skip ahead")
+            ledger.record_measure("test", _pass_obs("test", "skip ahead"))
+            with self.assertRaises(AdvanceError) as ctx:
+                ledger.advance("test")
+            msg = str(ctx.exception).lower()
+            self.assertIn("plan", msg)
+            self.assertFalse(ledger.states["test"].advanced)
 
 
 if __name__ == "__main__":

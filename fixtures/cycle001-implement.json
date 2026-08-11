@@ -1,0 +1,36 @@
+{
+  "artifact_present": true,
+  "artifact_sha256": "f1724ed1a6cf06db009c8089e90da87ede3be86f8ca7c91cb44192b1d4f4e602",
+  "checks": [
+    {
+      "name": "invariants_md_exists",
+      "passed": true
+    },
+    {
+      "name": "g_missing_capture_in_invariants",
+      "passed": true
+    },
+    {
+      "name": "g_reclaim_in_invariants",
+      "passed": true
+    },
+    {
+      "name": "test_missing_capture_exists",
+      "passed": true
+    },
+    {
+      "name": "test_reclaim_exists",
+      "passed": true
+    },
+    {
+      "name": "test_claim_match_exists",
+      "passed": true
+    },
+    {
+      "name": "advance_requires_latest_file",
+      "passed": true
+    }
+  ],
+  "claim": "CYCLE-001 Gate implement: G-MISSING-CAPTURE + invariant tests on shipped ledger",
+  "phase": "implement"
+}
