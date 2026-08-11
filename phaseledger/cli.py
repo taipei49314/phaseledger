@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from .bundle import export_bundle, import_bundle
+from .doctor import run_doctor
 from .ledger import AdvanceError, PhaseLedger
 from .maintenance import run_maintenance
 from .measure import measure
@@ -149,6 +150,18 @@ def cmd_import(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_doctor(args: argparse.Namespace) -> int:
+    root = Path(args.root) if args.root else None
+    result = run_doctor(root)
+    text = result.format_text()
+    if args.out:
+        out_path = Path(args.out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(text, encoding="utf-8")
+    sys.stdout.write(text)
+    return 0 if result.ok else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="phaseledger",
@@ -228,6 +241,11 @@ def build_parser() -> argparse.ArgumentParser:
     im.add_argument("--bundle", required=True, help="Bundle JSON path")
     im.add_argument("--ledger", required=True, help="Empty destination ledger directory")
     im.set_defaults(func=cmd_import)
+
+    d = sub.add_parser("doctor", help="Self-check: files, invariant tokens, full unittest suite")
+    d.add_argument("--root", help="Repo root (default: package parent)")
+    d.add_argument("--out", help="Write doctor report to path")
+    d.set_defaults(func=cmd_doctor)
 
     return p
 
