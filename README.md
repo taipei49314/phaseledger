@@ -77,7 +77,7 @@ python -m phaseledger doctor
 |-------|--------|
 | **GitHub visibility** | **Public** — https://github.com/taipei49314/phaseledger |
 | **CI workflow** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on every push/PR to `main` |
-| **Latest CI run** | **success** — [actions/runs/31477422751](https://github.com/taipei49314/phaseledger/actions/runs/31477422751) (`6a57446`) |
+| **Latest CI run** | **success** — [actions/runs/31479371096](https://github.com/taipei49314/phaseledger/actions/runs/31479371096) (`3e6570b`, README evidence commit also green) |
 | **CI matrix** | Python **3.10**, **3.11**, **3.12** (ubuntu-latest) — all green |
 | **CI steps (each Python)** | `pip install -e .` → unit tests → `doctor` → CLI smoke (`init` / `measure` complete+incomplete exit 4 / `ncycle` / `maintenance` / `verify`) |
 | **CI package job** | sdist + wheel build — green |
