@@ -23,6 +23,7 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def cmd_measure(args: argparse.Namespace) -> int:
     obs = _load_json(Path(args.observations))
+    strict = bool(getattr(args, "strict", False))
     if args.ledger:
         ledger = PhaseLedger.open(args.ledger)
         phase = args.phase or obs.get("phase")
@@ -32,9 +33,9 @@ def cmd_measure(args: argparse.Namespace) -> int:
                 file=sys.stderr,
             )
             return 2
-        result = ledger.record_measure(str(phase), obs)
+        result = ledger.record_measure(str(phase), obs, strict=strict)
     else:
-        result = measure(obs)
+        result = measure(obs, strict=strict)
     text = result.format_text()
     if args.out:
         out_path = Path(args.out)
@@ -92,6 +93,17 @@ def cmd_ncycle(args: argparse.Namespace) -> int:
     return 0 if result.ok else 1
 
 
+def cmd_history(args: argparse.Namespace) -> int:
+    ledger = PhaseLedger.open(args.ledger)
+    text = ledger.history_text()
+    if args.out:
+        out_path = Path(args.out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(text, encoding="utf-8")
+    sys.stdout.write(text)
+    return 0 if "ERROR:" not in text else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="phaseledger",
@@ -104,6 +116,11 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--ledger", help="Optional ledger dir to record the measure")
     m.add_argument("--phase", help="Phase name (overrides observations.phase when recording)")
     m.add_argument("--out", help="Write measure text capture to this path")
+    m.add_argument(
+        "--strict",
+        action="store_true",
+        help="Strict measure: empty checks are FAIL (not UNKNOWN)",
+    )
     m.set_defaults(func=cmd_measure)
 
     c = sub.add_parser("claim", help="Record a claim for a phase (not trusted until measured)")
@@ -138,6 +155,11 @@ def build_parser() -> argparse.ArgumentParser:
     n.add_argument("--count", type=int, default=5, help="Number of mini-cycles (default 5)")
     n.add_argument("--out", help="Write ncycle report to this path")
     n.set_defaults(func=cmd_ncycle)
+
+    h = sub.add_parser("history", help="Show append-only events.jsonl history")
+    h.add_argument("--ledger", required=True, help="Ledger directory")
+    h.add_argument("--out", help="Write history text to this path")
+    h.set_defaults(func=cmd_history)
 
     return p
 

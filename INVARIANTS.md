@@ -51,6 +51,23 @@ verify re-reads disk (ledger.json + *-latest.json)
 ncycle: N × (plan→implement→test) fail-closed
 ```
 
+## Measurer schema (CYCLE-003)
+
+| ID | Rule | Test |
+|----|------|------|
+| **M-SCHEMA-1** | schema_version 1 / "1" / "1.0" accepted | `test_schema_version_1_pass`, `test_schema_version_string_1_pass` |
+| **M-SCHEMA-UNSUPPORTED** | other schema_version → FAIL | `test_unsupported_schema_fail` |
+| **M-STRICT-EMPTY-CHECKS** | strict=True + empty checks → FAIL (not UNKNOWN) | `test_strict_empty_checks_fail` |
+| **M-CHECK-NAME** | empty check name → FAIL | `test_empty_check_name_fail` |
+
+## Ledger history (CYCLE-003)
+
+| ID | Rule | Test |
+|----|------|------|
+| **L-EVENTS-APPEND** | claim/measure/advance append events.jsonl; prior lines kept | `test_events_append_only_claim_measure_advance` |
+| **L-HISTORY-CLI** | history lists events | `test_history_text_lists_events`, `test_cli_history` |
+| **L-VERIFY-EVENTS** | advanced phases must appear in events.jsonl | `test_verify_requires_advance_in_event_log` |
+
 ## Local regression
 
 ```bash

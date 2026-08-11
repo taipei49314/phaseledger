@@ -64,20 +64,27 @@ python -m unittest discover -s tests -v
 ## Gate invariants
 
 Capability line **G** rules live in [INVARIANTS.md](INVARIANTS.md).  
-Cycle record: [CYCLE-001.md](CYCLE-001.md), [CYCLE-002.md](CYCLE-002.md).
+Cycle records: [CYCLE-001.md](CYCLE-001.md), [CYCLE-002.md](CYCLE-002.md), [CYCLE-003.md](CYCLE-003.md).
 
-Heavy integrity: python -m phaseledger ncycle --dir .ncycle-runs --count 5, python -m phaseledger verify --ledger .phaseledger, python scripts/run_regression.py.
+```bash
+python -m phaseledger ncycle --dir .ncycle-runs --count 5
+python -m phaseledger verify --ledger .phaseledger
+python -m phaseledger history --ledger .phaseledger
+python -m phaseledger measure fixtures/complete.json --strict
+python scripts/run_regression.py
+```
 
 ## Honest status
 
 Pre-alpha vertical slice:
 
-- Measurer core + CLI: implemented
-- Phase ledger (plan / implement / test): implemented
-- Gate invariants (G): documented and tested (CYCLE-001)
+- Measurer core + CLI: implemented (`schema_version`, `--strict` in CYCLE-003)
+- Phase ledger + append-only `events.jsonl` + `history` (CYCLE-003)
+- Gate invariants (G): CYCLE-001 / CYCLE-002
 - External audit: none
 - Network at measure time: not required
-- Capability lines M / L / C / O: not claimed this cycle
+- Capability lines M / L: partially deepened in CYCLE-003 (not fully complete)
+- C / O: not claimed
 
 Missing observation is never treated as pass. This README is a claim; the fixtures and tests are the evidence.
 

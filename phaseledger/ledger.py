@@ -48,6 +48,9 @@ class PhaseLedger:
         root_path.mkdir(parents=True, exist_ok=True)
         (root_path / "measures").mkdir(exist_ok=True)
         (root_path / "claims").mkdir(exist_ok=True)
+        events = root_path / "events.jsonl"
+        if not events.is_file():
+            events.write_text("", encoding="utf-8")
         ledger_path = root_path / "ledger.json"
         if ledger_path.is_file():
             data = json.loads(ledger_path.read_text(encoding="utf-8"))
@@ -63,6 +66,56 @@ class PhaseLedger:
         ledger = cls(root=root_path, phases=phases)
         ledger.save()
         return ledger
+
+    def _append_event(self, event_type: str, payload: dict[str, Any]) -> None:
+        """Append-only event log (JSONL). Never rewrites prior lines."""
+        record = {
+            "at": _utc_now(),
+            "type": event_type,
+            **payload,
+        }
+        path = self.root / "events.jsonl"
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(record, sort_keys=True, ensure_ascii=False) + "\n")
+
+    def read_events(self) -> list[dict[str, Any]]:
+        path = self.root / "events.jsonl"
+        if not path.is_file():
+            return []
+        events: list[dict[str, Any]] = []
+        for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"events.jsonl line {line_no} corrupt: {e}") from e
+            if not isinstance(obj, dict):
+                raise ValueError(f"events.jsonl line {line_no} is not an object")
+            events.append(obj)
+        return events
+
+    def history_text(self) -> str:
+        lines = ["phaseledger history", f"root: {self.root}", "events:"]
+        try:
+            events = self.read_events()
+        except ValueError as e:
+            return f"phaseledger history\nroot: {self.root}\nERROR: {e}\n"
+        if not events:
+            lines.append("  (none)")
+        for i, ev in enumerate(events):
+            et = ev.get("type", "?")
+            phase = ev.get("phase", "")
+            extra = ""
+            if et == "claim":
+                extra = f" claim={ev.get('claim', '')!r}"
+            elif et == "measure":
+                extra = f" verdict={ev.get('verdict', '')}"
+            elif et == "advance":
+                extra = f" advanced_at={ev.get('advanced_at', '')}"
+            lines.append(f"  [{i}] {ev.get('at', '')} {et} {phase}{extra}")
+        return "\n".join(lines) + "\n"
 
     def save(self) -> None:
         payload = {
@@ -93,14 +146,21 @@ class PhaseLedger:
         st.measure_digest = None
         st.measure_path = None
         self.save()
+        self._append_event("claim", {"phase": phase, "claim": claim})
         return claim_path
 
-    def record_measure(self, phase: str, observations: dict[str, Any]) -> MeasureResult:
+    def record_measure(
+        self,
+        phase: str,
+        observations: dict[str, Any],
+        *,
+        strict: bool = False,
+    ) -> MeasureResult:
         """Run measurer, persist capture, update state. Does not advance."""
         self._require_phase(phase)
         obs = dict(observations)
         obs.setdefault("phase", phase)
-        result = measure(obs)
+        result = measure(obs, strict=strict)
         stamp = _utc_now().replace(":", "").replace("+00:00", "Z")
         measure_path = self.root / "measures" / f"{phase}-{stamp}-{result.verdict}.json"
         capture = {
@@ -108,6 +168,7 @@ class PhaseLedger:
             "phase": phase,
             "observations": obs,
             "result": result.to_dict(),
+            "strict": strict,
         }
         measure_path.write_text(json.dumps(capture, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         # also write latest pointer for the phase
@@ -121,6 +182,16 @@ class PhaseLedger:
         st.advanced = False
         st.advanced_at = None
         self.save()
+        self._append_event(
+            "measure",
+            {
+                "phase": phase,
+                "verdict": result.verdict,
+                "digest": result.observation_digest,
+                "path": st.measure_path,
+                "strict": strict,
+            },
+        )
         return result
 
     def advance(self, phase: str) -> PhaseState:
@@ -170,6 +241,10 @@ class PhaseLedger:
         st.advanced = True
         st.advanced_at = _utc_now()
         self.save()
+        self._append_event(
+            "advance",
+            {"phase": phase, "advanced_at": st.advanced_at, "verdict": st.measure_verdict},
+        )
         return st
 
     def status_text(self) -> str:
@@ -274,6 +349,38 @@ class PhaseLedger:
                     reasons.append(
                         f"{phase}: advanced while prior phase {prior!r} is not advanced"
                     )
+
+        # Event log integrity: advanced phases must be recorded in events.jsonl.
+        advanced_phases = {
+            p
+            for p, st_raw in raw_states.items()
+            if isinstance(st_raw, dict) and st_raw.get("advanced")
+        }
+        events_path = self.root / "events.jsonl"
+        if advanced_phases:
+            if not events_path.is_file():
+                reasons.append(
+                    f"advanced phases missing from events.jsonl: {sorted(advanced_phases)}"
+                )
+            else:
+                try:
+                    events = self.read_events()
+                except ValueError as e:
+                    reasons.append(str(e))
+                else:
+                    advanced_in_log = {
+                        e.get("phase") for e in events if e.get("type") == "advance"
+                    }
+                    missing_adv = advanced_phases - advanced_in_log
+                    if missing_adv:
+                        reasons.append(
+                            f"advanced phases missing from events.jsonl: {sorted(missing_adv)}"
+                        )
+        elif events_path.is_file() and events_path.stat().st_size > 0:
+            try:
+                self.read_events()
+            except ValueError as e:
+                reasons.append(str(e))
 
         if reasons:
             return VerifyResult(ok=False, verdict="FAIL", reasons=tuple(reasons))
