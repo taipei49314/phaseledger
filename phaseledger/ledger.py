@@ -143,11 +143,43 @@ class PhaseLedger:
         tmp.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         os.replace(tmp, path)
 
+    def _clear_phase_progress(self, phase: str, *, clear_claim: bool = False) -> None:
+        """Clear measure/advance for a phase (optionally claim text)."""
+        st = self.states[phase]
+        if clear_claim:
+            st.claim = None
+        st.advanced = False
+        st.advanced_at = None
+        st.measure_verdict = None
+        st.measure_digest = None
+        st.measure_path = None
+
+    def _cascade_invalidate_later_phases(self, phase: str) -> tuple[str, ...]:
+        """Invalidate all phases after ``phase`` (process integrity).
+
+        If an earlier phase is re-claimed or re-measured, later ADVANCED phases
+        must not remain trusted — they were produced under a superseded plan.
+        """
+        idx = self.phases.index(phase)
+        cleared: list[str] = []
+        for later in self.phases[idx + 1 :]:
+            st = self.states[later]
+            if (
+                st.advanced
+                or st.measure_verdict is not None
+                or st.measure_path is not None
+                or st.claim is not None
+            ):
+                self._clear_phase_progress(later, clear_claim=True)
+                cleared.append(later)
+        return tuple(cleared)
+
     def record_claim(self, phase: str, claim: str) -> Path:
-        """Record a claim. Invalidates any prior measure and advance for the phase.
+        """Record a claim. Invalidates prior measure/advance for this phase and later ones.
 
         A new claim is never trusted until a fresh measure covers it; stale
         PASS verdicts from an earlier claim must not authorize advance.
+        Later phases cascade-clear so a re-plan cannot leave implement/test ADVANCED.
         """
         self._require_phase(phase)
         claim_path = self.root / "claims" / f"{phase}.json"
@@ -161,8 +193,12 @@ class PhaseLedger:
         st.measure_verdict = None
         st.measure_digest = None
         st.measure_path = None
+        cascaded = self._cascade_invalidate_later_phases(phase)
         self.save()
-        self._append_event("claim", {"phase": phase, "claim": claim})
+        self._append_event(
+            "claim",
+            {"phase": phase, "claim": claim, "cascaded_invalidate": list(cascaded)},
+        )
         return claim_path
 
     def record_measure(
@@ -172,7 +208,10 @@ class PhaseLedger:
         *,
         strict: bool = False,
     ) -> MeasureResult:
-        """Run measurer, persist capture, update state. Does not advance."""
+        """Run measurer, persist capture, update state. Does not advance.
+
+        Also cascade-invalidates later phases (same reason as re-claim).
+        """
         self._require_phase(phase)
         obs = dict(observations)
         obs.setdefault("phase", phase)
@@ -197,6 +236,7 @@ class PhaseLedger:
         # a new measure invalidates a prior advance
         st.advanced = False
         st.advanced_at = None
+        cascaded = self._cascade_invalidate_later_phases(phase)
         self.save()
         self._append_event(
             "measure",
@@ -206,6 +246,7 @@ class PhaseLedger:
                 "digest": result.observation_digest,
                 "path": st.measure_path,
                 "strict": strict,
+                "cascaded_invalidate": list(cascaded),
             },
         )
         return result
