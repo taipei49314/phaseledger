@@ -36,6 +36,9 @@ jobs:
       - name: Doctor self-check
         run: python -m phaseledger doctor --root "${{ github.workspace }}"
 
+      - name: Maturity M0–M4
+        run: python -m phaseledger maturity
+
       - name: CLI user-path smoke
         run: |
           set -euo pipefail

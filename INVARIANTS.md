@@ -43,6 +43,18 @@ Lines M / L / C / O are not claimed fully complete beyond what is implemented he
 | **N-FIVE-PASS** | 5 sequential mini-cycles all PASS | `test_five_mini_cycles_pass`, `test_cli_ncycle_five` |
 | **N-FAIL-CLOSED** | Bad measure aborts N-cycle | `test_ncycle_fails_closed_on_bad_measure` |
 
+## Maturity (CYCLE-011)
+
+Machine-checked on this checkout by `phaseledger maturity`. Missing observation is never PASS. verify is local integrity, not third-party audit.
+
+| ID | Rule | Evidence |
+|----|------|----------|
+| **MAT-M0** | Closed verdict vocab + fixtures + doctor structural | `maturity` M0 |
+| **MAT-M1** | Incomplete fixture cannot authorize advance | `maturity` M1 |
+| **MAT-M2** | Re-claim plan cascade-invalidates later phases | `maturity` M2 |
+| **MAT-M3** | Frozen refuse codes; forbidden verdicts absent | `maturity` M3 |
+| **MAT-M4** | Claims policy + threat model phrases present | `maturity` M4 |
+
 ## Operating rule
 
 ```

@@ -7,7 +7,7 @@
 ## Threat notes
 
 - Ledger directories are trusted as operator-controlled storage.
-- `verify` / advance digests detect simple tamper of captures vs state; they are not a cryptographic attestation chain.
+- `verify` / advance digests detect simple tamper of captures vs state; they are not a cryptographic attestation chain. See [THREAT_MODEL.md](THREAT_MODEL.md) and [CLAIMS_POLICY.md](CLAIMS_POLICY.md).
 - Import of bundles should only use files you trust; malformed JSON is rejected fail-closed.
 - Do not feed untrusted paths into `--ledger` on multi-user machines without isolation.
 
