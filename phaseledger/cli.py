@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+from . import __version__
 from .bundle import export_bundle, import_bundle
 from .doctor import run_doctor
 from .ledger import AdvanceError, PhaseLedger
@@ -190,6 +191,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="phaseledger",
         description="Local-first phase ledger: measure before advance.",
+    )
+    p.add_argument(
+        "--version",
+        action="version",
+        version=f"phaseledger {__version__}",
+        help="Print the package version and exit",
     )
     sub = p.add_subparsers(dest="command", required=True)
 

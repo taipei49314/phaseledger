@@ -9,6 +9,7 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
+from phaseledger import __version__
 from phaseledger.cli import main
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +17,14 @@ FIXTURES = ROOT / "fixtures"
 
 
 class TestCLI(unittest.TestCase):
+    def test_version_flag_prints_package_version(self) -> None:
+        buf = io.StringIO()
+        with redirect_stdout(buf), self.assertRaises(SystemExit) as ctx:
+            main(["--version"])
+        self.assertEqual(ctx.exception.code, 0)
+        self.assertEqual(buf.getvalue().strip(), f"phaseledger {__version__}")
+        self.assertRegex(__version__, r"^\d+\.\d+\.\d+$")
+
     def test_measure_complete_exit_zero_and_verdict(self) -> None:
         buf = io.StringIO()
         with redirect_stdout(buf):

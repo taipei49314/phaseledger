@@ -56,6 +56,7 @@ cd phaseledger
 pip install -e .
 
 python -m phaseledger --help
+python -m phaseledger --version
 python -m phaseledger init --ledger .phaseledger
 python -m phaseledger measure fixtures/complete.json
 python -m phaseledger measure fixtures/incomplete.json
