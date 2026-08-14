@@ -71,17 +71,17 @@ python -m unittest discover -s tests -v
 python -m phaseledger doctor
 ```
 
-### Latest results (recorded 2026-08-11)
+### Latest results (recorded 2026-08-15 local; CI for CYCLE-011 not yet on `main`)
 
 | Check | Result |
 |-------|--------|
 | **GitHub visibility** | **Public** — https://github.com/taipei49314/phaseledger |
 | **CI workflow** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on every push/PR to `main` |
-| **Latest CI run** | **success** — [actions/runs/31479371096](https://github.com/taipei49314/phaseledger/actions/runs/31479371096) (`3e6570b`, README evidence commit also green) |
-| **CI matrix** | Python **3.10**, **3.11**, **3.12** (ubuntu-latest) — all green |
-| **CI steps (each Python)** | `pip install -e .` → unit tests → `doctor` → CLI smoke (`init` / `measure` complete+incomplete exit 4 / `ncycle` / `maintenance` / `verify`) |
-| **CI package job** | sdist + wheel build — green |
-| **Local unit suite** | **`Ran 99 tests` … `OK`** (stdlib `unittest`, no extra test deps) |
+| **Latest CI on `main`** | **success** — [actions/runs/31479427686](https://github.com/taipei49314/phaseledger/actions/runs/31479427686) (`003ea06`, last `main` evidence commit) |
+| **CI matrix** | Python **3.10**, **3.11**, **3.12** (ubuntu-latest) |
+| **Local unit suite** | **`Ran 104 tests` … `OK`** (stdlib `unittest`, no extra test deps) |
+| **Doctor** | **PASS** (`python -m phaseledger doctor`) |
+| **Maturity** | **5/5 PASS** (`python -m phaseledger maturity`) — this checkout only |
 | **Incomplete fixture** | exit code **4**, verdict **`INCOMPLETE`** (fail-closed; never treated as pass) |
 | **User-path smoke** | claim → measure → advance × plan/implement/test; re-claim plan **cascades** later phases to pending; export/import/verify PASS |
 
@@ -98,8 +98,8 @@ python scripts/run_regression.py
 ## Gate invariants
 
 Capability line **G** rules live in [INVARIANTS.md](INVARIANTS.md).  
-Cycle records: [CYCLE-001](CYCLE-001.md) … [CYCLE-010](CYCLE-010.md).  
-Operator notes: [AGENTS.md](AGENTS.md) · [SECURITY.md](SECURITY.md).  
+Cycle records: [CYCLE-001](CYCLE-001.md) … [CYCLE-011](CYCLE-011.md).  
+Operator notes: [AGENTS.md](AGENTS.md) · [SECURITY.md](SECURITY.md) · [CLAIMS_POLICY.md](CLAIMS_POLICY.md) · [THREAT_MODEL.md](THREAT_MODEL.md).  
 Measure boundaries: [docs/MEASURE_BOUNDARIES.md](docs/MEASURE_BOUNDARIES.md).
 
 ```bash
@@ -113,6 +113,7 @@ python -m phaseledger import --bundle evidence/bundle.json --ledger .restored
 python -m phaseledger measure fixtures/complete.json --strict
 python scripts/run_regression.py
 python -m phaseledger doctor
+python -m phaseledger maturity
 ```
 
 ## Honest status
@@ -124,8 +125,9 @@ Pre-alpha vertical slice — **public**, **CI green**, **not** third-party audit
 | Measurer | PASS/FAIL/UNKNOWN/INCOMPLETE; `schema_version`; `--strict`; boundary fixtures |
 | Ledger | claim → measure → advance; re-claim/**re-measure cascade** on later phases; `events.jsonl` |
 | Integrity | `verify`, refuse codes (`NO_MEASURE`, `CLAIM_MISMATCH`, …), export/import bundle |
-| Ops CLI | `init`, `status`, `history`, `ncycle`, `maintenance`, `doctor` |
-| Tests | **99** unit tests; CI on 3.10–3.12; doctor self-check |
+| Ops CLI | `init`, `status`, `history`, `ncycle`, `maintenance`, `doctor`, `maturity` |
+| Tests | unit suite + doctor + maturity M0–M4; CI on 3.10–3.12 |
+| Maturity | M0–M4 measured on this checkout; not Unasked `VERIFIED` |
 | External audit | none |
 | Network at measure time | not required |
 

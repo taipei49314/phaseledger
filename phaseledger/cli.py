@@ -12,6 +12,7 @@ from .bundle import export_bundle, import_bundle
 from .doctor import run_doctor
 from .ledger import AdvanceError, PhaseLedger
 from .maintenance import run_maintenance
+from .maturity import format_maturity, run_maturity
 from .measure import measure
 from .ncycle import run_n_cycles
 
@@ -170,6 +171,21 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     return 0 if result.ok else 1
 
 
+def cmd_maturity(args: argparse.Namespace) -> int:
+    root = Path(args.root) if args.root else None
+    report = run_maturity(root)
+    if getattr(args, "json", False):
+        text = json.dumps(report, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+    else:
+        text = format_maturity(report)
+    if args.out:
+        out_path = Path(args.out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(text, encoding="utf-8")
+    sys.stdout.write(text)
+    return 0 if report["ok"] else 2
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="phaseledger",
@@ -254,6 +270,12 @@ def build_parser() -> argparse.ArgumentParser:
     d.add_argument("--root", help="Repo root (default: package parent)")
     d.add_argument("--out", help="Write doctor report to path")
     d.set_defaults(func=cmd_doctor)
+
+    mat = sub.add_parser("maturity", help="Measure M0–M4 evidence on this checkout")
+    mat.add_argument("--root", help="Repo root (accepted; maturity reads the package checkout)")
+    mat.add_argument("--json", action="store_true", help="Write machine-readable report")
+    mat.add_argument("--out", help="Write maturity report to path")
+    mat.set_defaults(func=cmd_maturity)
 
     return p
 

@@ -31,10 +31,13 @@ def run_doctor(repo_root: Path | None = None, *, run_tests: bool = True) -> Doct
 
     required = [
         root / "INVARIANTS.md",
+        root / "CLAIMS_POLICY.md",
+        root / "THREAT_MODEL.md",
         root / "docs" / "MEASURE_BOUNDARIES.md",
         root / "phaseledger" / "measure.py",
         root / "phaseledger" / "ledger.py",
         root / "phaseledger" / "bundle.py",
+        root / "phaseledger" / "maturity.py",
         root / "scripts" / "run_regression.py",
     ]
     for p in required:
@@ -60,6 +63,8 @@ def run_doctor(repo_root: Path | None = None, *, run_tests: bool = True) -> Doct
         "L-EVENTS-APPEND",
         "NO_MEASURE",
         "DIGEST_MISMATCH",
+        "MAT-M0",
+        "MAT-M4",
     ):
         if token in corpus:
             lines.append(f"  OK invariant token {token}")
@@ -114,7 +119,7 @@ def run_doctor(repo_root: Path | None = None, *, run_tests: bool = True) -> Doct
     lines.append("  G Gate: strong (matrix + codes + regression guards)")
     lines.append("  M Measurer: medium+ (schema, strict, fuzz, boundaries doc)")
     lines.append("  L Ledger: medium+ (events, verify, export/import)")
-    lines.append("  C CLI: medium (init/history/verify/ncycle/maintenance/export/import/doctor)")
-    lines.append("  O Ops: medium (maintenance N, regression script, doctor)")
+    lines.append("  C CLI: medium (init/history/verify/ncycle/maintenance/export/import/doctor/maturity)")
+    lines.append("  O Ops: medium+ (maintenance N, regression, doctor, maturity M0–M4)")
     lines.append(f"DOCTOR: {'PASS' if ok else 'FAIL'}")
     return DoctorResult(ok=ok, lines=tuple(lines))
